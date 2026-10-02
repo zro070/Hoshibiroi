@@ -1,6 +1,7 @@
 import type { TranslatorConfig, Preferences, AssistantSettings, AssistantPreset } from '../shared/types';
 import { CONTEXT_STEPS, DEFAULT_ASSISTANT_PRESETS, LOCKED_INJECTION_RULE, normalizeAssistantSettings } from '../shared/assistant';
 import { escapeHtml } from '../vocab/utils';
+import { enableInlineTranslate } from '../shared/inline-translate';
 
 /** 需要 API Key 的翻译源 ID 集合 */
 const API_KEY_IDS = new Set(['deepseek', 'tencent', 'baidu', 'deepl']);
@@ -359,3 +360,4 @@ function escapeAttr(s: string): string {
 }
 
 init();
+enableInlineTranslate();

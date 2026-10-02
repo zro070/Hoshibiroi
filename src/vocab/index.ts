@@ -4,6 +4,7 @@ import { renderBrowse, mountBrowse, unmountBrowse } from './panels/browse';
 import { renderStats, mountStats, unmountStats } from './panels/stats';
 import { renderSettings, mountSettings, openDrawer, closeDrawer } from './panels/settings';
 import { ico, Icons } from './utils';
+import { enableInlineTranslate } from '../shared/inline-translate';
 
 
 const panelRenderers: Record<string, { render: () => void; mount: () => void; unmount: () => void }> = {
@@ -85,3 +86,4 @@ async function init(): Promise<void> {
 }
 
 init();
+enableInlineTranslate();

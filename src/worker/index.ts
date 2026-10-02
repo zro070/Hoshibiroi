@@ -65,6 +65,47 @@ function generateId(): string {
   return Date.now().toString(36) + Math.random().toString(36).slice(2, 9);
 }
 
+// ── 截图取词（OCR）──
+// 捕获当前标签可见区域（含 chrome://、PDF、其它扩展页面），存入 session 后打开 OCR 选择页
+async function captureAndOpenOcr(): Promise<void> {
+  const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+  if (!tab?.windowId) return;
+  try {
+    const dataUrl = await chrome.tabs.captureVisibleTab(tab.windowId, { format: 'png' });
+    await chrome.storage.session.set({
+      ocrImage: dataUrl,
+      ocrSourceUrl: tab.url ?? '',
+      ocrSourceTitle: tab.title ?? '',
+    });
+    await chrome.tabs.create({ url: chrome.runtime.getURL('src/ocr/index.html') });
+  } catch (err) {
+    console.warn('[SW] captureVisibleTab 失败:', err);
+    chrome.notifications.create('ocr-unavailable', {
+      type: 'basic',
+      iconUrl: 'icons/icon-48.png',
+      title: '截图取词',
+      message: '当前页面无法截图（可能是浏览器内部页或缺少权限）',
+      priority: 0,
+    }).catch(() => {});
+  }
+}
+
+// 右键菜单入口
+chrome.runtime.onInstalled.addListener(() => {
+  try {
+    chrome.contextMenus.create({
+      id: 'capture-ocr',
+      title: '截图取词翻译',
+      contexts: ['all'],
+    });
+  } catch {
+    /* 重复创建（如扩展更新）时忽略 */
+  }
+});
+chrome.contextMenus.onClicked.addListener((info) => {
+  if (info.menuItemId === 'capture-ocr') void captureAndOpenOcr();
+});
+
 // ── 键盘快捷键 ──
 // 快捷键在未注入 content script 的页面（chrome://、商店页等）会静默失败 → 给一条通知反馈
 function notifyShortcutUnavailable(action: string): void {
@@ -86,6 +127,8 @@ chrome.commands.onCommand.addListener(async (command) => {
     chrome.tabs.sendMessage(tab.id, { action: 'speak-selection' }).catch(() => notifyShortcutUnavailable('朗读'));
   } else if (command === 'ask') {
     chrome.tabs.sendMessage(tab.id, { action: 'ask-selection' }).catch(() => notifyShortcutUnavailable('AI 助手'));
+  } else if (command === 'capture') {
+    void captureAndOpenOcr();
   }
 });
 

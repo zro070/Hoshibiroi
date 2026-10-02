@@ -3,7 +3,7 @@
   "name": "划词翻译",
   "version": "0.1.0",
   "description": "划词翻译 Chrome 插件 — 支持多翻译源、发音、生词收藏",
-  "permissions": ["storage", "scripting", "tts", "alarms", "notifications"],
+  "permissions": ["storage", "scripting", "tts", "alarms", "notifications", "activeTab", "contextMenus"],
   "host_permissions": ["<all_urls>"],
   "background": {
     "service_worker": "src/worker/index.ts"
@@ -12,7 +12,9 @@
     {
       "matches": ["<all_urls>"],
       "js": ["src/content/index.ts"],
-      "run_at": "document_end"
+      "run_at": "document_end",
+      "all_frames": true,
+      "match_about_blank": true
     }
   ],
   "action": {
@@ -38,7 +40,17 @@
     "ask": {
       "suggested_key": { "default": "Alt+Q" },
       "description": "向 AI 提问选中内容"
+    },
+    "capture": {
+      "suggested_key": { "default": "Alt+Shift+S" },
+      "description": "截图取词翻译（OCR）"
     }
+  },
+  "sandbox": {
+    "pages": ["src/ocr/sandbox.html"]
+  },
+  "content_security_policy": {
+    "sandbox": "sandbox allow-scripts; script-src 'self' 'unsafe-inline' 'unsafe-eval' 'wasm-unsafe-eval' https://cdn.jsdelivr.net; worker-src 'self' blob: https://cdn.jsdelivr.net; connect-src https://cdn.jsdelivr.net https://tessdata.projectnaptha.com; img-src 'self' data: blob:; default-src 'self'"
   },
   "web_accessible_resources": [
     {

@@ -7,7 +7,7 @@ export default defineConfig({
       manifest: 'public/manifest.json',
       watchFilePaths: ['public/**/*'],
       skipManifestValidation: true,
-      additionalInputs: ['src/vocab/index.html'],
+      additionalInputs: ['src/vocab/index.html', 'src/ocr/index.html'],
     }),
   ],
   build: {

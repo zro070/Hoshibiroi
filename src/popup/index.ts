@@ -1,5 +1,6 @@
 import type { FavoriteWord } from '../shared/types';
 import { Icons, escapeHtml } from '../vocab/utils';
+import { enableInlineTranslate } from '../shared/inline-translate';
 
 interface StatsData {
   reviewedToday: number;
@@ -209,3 +210,4 @@ document.getElementById('btn-setup')!.addEventListener('click', () => {
 // ── Go ──
 
 init();
+enableInlineTranslate();

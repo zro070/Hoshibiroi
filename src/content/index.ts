@@ -7,6 +7,7 @@ import { PopupBubble } from './components/popup-bubble';
 import { SidePanel } from './components/side-panel';
 import { AssistantController } from './assistant/controller';
 import { triggerIntent } from './trigger-intent';
+import { readSelection } from '../shared/selection';
 
 const DEBOUNCE_MS = 200;
 
@@ -25,36 +26,6 @@ function langSig(from: string, to: string): string {
 if (document.body) {
   init();
 }
-// 从选区中提取上下文句子（选区所在的完整句子）
-function getContext(sel: Selection): string {
-  try {
-    const range = sel.getRangeAt(0);
-    // 获取选区所在段落/父元素的文本
-    const container = range.commonAncestorContainer;
-    const fullText = container.textContent || "";
-    if (!fullText) return "";
-    const selStart = range.startOffset;
-    // 从选区开始位置向前后扩展到句子边界
-    let ctxStart = selStart;
-    let ctxEnd = selStart + sel.toString().length;
-    // 向前扩展：找到最近的句子分隔符
-    for (let i = selStart - 1; i >= 0; i--) {
-      if (/[.!?。！？\n]/.test(fullText[i])) { ctxStart = i + 1; break; }
-      ctxStart = i;
-    }
-    // 向后扩展：找到最近的句子分隔符
-    for (let i = ctxEnd; i < fullText.length; i++) {
-      if (/[.!?。！？\n]/.test(fullText[i])) { ctxEnd = i; break; }
-      ctxEnd = i + 1;
-    }
-    const ctx = fullText.slice(ctxStart, ctxEnd).trim();
-    return ctx.length > 0 && ctx.length < 500 ? ctx : "";
-  } catch {
-    return "";
-  }
-}
-
-
 function init(): void {
   let debounceTimer: ReturnType<typeof setTimeout> | null = null;
   let lastSelection: { text: string; rect: DOMRect; context: string } | null = null;
@@ -200,37 +171,14 @@ function init(): void {
   document.addEventListener('mouseup', () => {
     if (debounceTimer) clearTimeout(debounceTimer);
     debounceTimer = setTimeout(() => {
-      const sel = window.getSelection();
-      if (!sel || sel.isCollapsed || !sel.toString().trim()) {
+      const info = readSelection();
+      if (!info) {
         triggerIcon.hide();
         return;
       }
-      const text = sel.toString().trim();
-      // 长文本支持：最多 20000 字符（worker 侧自动分块翻译；再长视为误选整页）
-      if (text.length === 0 || text.length > 20000) {
-        triggerIcon.hide();
-        return;
-      }
-      const activeEl = document.activeElement as HTMLElement | null;
-      const inEditable = activeEl !== null && (
-        activeEl.tagName === 'INPUT' || activeEl.tagName === 'TEXTAREA' ||
-        activeEl.isContentEditable ||
-        !!activeEl.closest?.('[contenteditable="true"], [contenteditable=""]')
-      );
-      // 选区落在富文本编辑区（Gmail/Notion/评论区等）也不触发——用户可能只是在编辑
-      const anchorEl = sel.anchorNode?.nodeType === Node.TEXT_NODE
-        ? sel.anchorNode.parentElement
-        : (sel.anchorNode as HTMLElement | null);
-      const inEditableSelection = !!anchorEl?.closest?.('[contenteditable="true"], [contenteditable=""]');
-      if (inEditable || inEditableSelection) {
-        triggerIcon.hide();
-        return;
-      }
-      const rect = sel.getRangeAt(0).getBoundingClientRect();
-      const context = getContext(sel);
-      lastSelection = { text, rect, context };
-      assistant.setSelection(text, context);
-      triggerIcon.showAtRect(rect);
+      lastSelection = { text: info.text, rect: info.rect, context: info.context };
+      assistant.setSelection(info.text, info.context);
+      triggerIcon.showAtRect(info.rect);
     }, DEBOUNCE_MS);
   });
 
